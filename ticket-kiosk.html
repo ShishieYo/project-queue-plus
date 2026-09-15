@@ -107,6 +107,7 @@
     <div class="ticket-actions" id="ticketActions">
       <div class="save-tip">📸 Screenshot this ticket, or download it below — you'll need to show it at the counter.</div>
       <button id="downloadTicketBtn" class="btn-outline" type="button">⬇️ Download ticket</button>
+      <a id="viewQueueLink" class="btn-outline" style="text-decoration:none;" target="_blank" rel="noopener">📺 View live queue</a>
     </div>
 
     <div class="controls">
@@ -203,6 +204,7 @@
     const ticketDisplay = document.getElementById('ticketDisplay');
     const ticketActions = document.getElementById('ticketActions');
     const downloadTicketBtn = document.getElementById('downloadTicketBtn');
+    const viewQueueLink = document.getElementById('viewQueueLink');
     const statusMsg = document.getElementById('statusMessage');
     const confirmModal = document.getElementById('confirmModal');
     const confirmText = document.getElementById('confirmText');
@@ -332,6 +334,7 @@
         setStatus('✅ Ticket ready! Screenshot or download it below.');
         lastTicket = { number: data.ticket, service, isPriority, priorityReason, timestampStr: getCurrentTimestamp() };
         ticketActions.classList.add('visible');
+        viewQueueLink.href = `./display-board.html?mode=client&ticket=${encodeURIComponent(data.ticket)}`;
         if (!isStaffMode) markTicketToday(service);
       } catch (err) {
         renderTicket(null);

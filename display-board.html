@@ -12,29 +12,32 @@
     --r-sm:12px; --r-md:16px; --r-lg:28px; --r-pill:999px;
   }
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;padding:0;background:#f4f7fc;font-family:'Segoe UI',system-ui,Roboto,sans-serif;color:var(--ink);display:flex;flex-direction:column;align-items:center}
-  .topbar{width:100%;background:linear-gradient(90deg,var(--prc-navy),var(--prc-blue));color:#fff;padding:1.4vh 2vw;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 14px rgba(10,47,107,0.18)}
-  .topbar .brand{display:flex;align-items:center;gap:14px}
-  .topbar .brand-badge{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;padding:6px;overflow:hidden}
+  html,body{height:100%;width:100%;margin:0;padding:0;background:#f4f7fc;font-family:'Segoe UI',system-ui,Roboto,sans-serif;color:var(--ink);display:flex;flex-direction:column;align-items:center}
+  body{padding-inline:0}
+  .topbar{width:100%;background:linear-gradient(90deg,var(--prc-navy),var(--prc-blue));color:#fff;padding:1.4vh clamp(12px,2vw,32px);display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 14px rgba(10,47,107,0.18);gap:10px;flex-wrap:wrap}
+  .topbar .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .topbar .brand-badge{width:clamp(34px,4vw,44px);height:clamp(34px,4vw,44px);border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;padding:6px;overflow:hidden;flex-shrink:0}
   .topbar .brand-badge img{width:100%;height:100%;object-fit:contain}
-  .topbar h1{font-size:1.6vw;margin:0;font-weight:700}
-  .topbar .sub{font-size:0.85vw;opacity:0.85;margin-top:2px;display:flex;align-items:center;gap:6px}
-  .live-dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 rgba(61,220,132,0.5);animation:pulse 1.6s infinite}
+  .topbar h1{font-size:clamp(0.95rem,1.5vw + 0.5rem,1.75rem);margin:0;font-weight:700;line-height:1.25}
+  .topbar .sub{font-size:clamp(0.68rem,0.5vw + 0.5rem,0.9rem);opacity:0.85;margin-top:2px;display:flex;align-items:center;gap:6px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 rgba(61,220,132,0.5);animation:pulse 1.6s infinite;flex-shrink:0}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,0.5)}70%{box-shadow:0 0 0 6px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
-  .topbar .clock{font-size:1.1vw;font-weight:600;opacity:0.95}
-  .main-container{display:flex;width:95%;flex:1;margin-top:2.4vh;justify-content:flex-start;gap:2vw;align-items:stretch}
-  .table-container{flex:7;display:flex;flex-direction:column;align-items:stretch}
-  #enableSound{align-self:center;background:var(--prc-blue);color:#fff;border:none;padding:1vh 2vw;border-radius:999px;cursor:pointer;font-size:1.1vw;margin-bottom:1.6vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25);transition:.2s ease}
+  .topbar .clock{font-size:clamp(0.85rem,0.8vw + 0.5rem,1.25rem);font-weight:600;opacity:0.95;white-space:nowrap}
+  .your-ticket-banner{width:95%;max-width:900px;margin:1.6vh auto 0;background:var(--prc-blue-light);border:1px solid rgba(13,91,196,0.18);border-radius:var(--r-md);padding:10px 18px;text-align:center;color:var(--prc-navy);font-weight:700;font-size:clamp(0.85rem,1vw + 0.5rem,1.1rem)}
+  .main-container{display:flex;width:95%;min-width:0;flex:1;margin-top:2.4vh;justify-content:flex-start;gap:2vw;align-items:stretch}
+  .table-container{flex:7;min-width:0;display:flex;flex-direction:column;align-items:stretch}
+  #enableSound{align-self:center;background:var(--prc-blue);color:#fff;border:none;padding:0.9vh clamp(14px,2vw,28px);border-radius:999px;cursor:pointer;font-size:clamp(0.8rem,0.6vw + 0.55rem,1.05rem);margin-bottom:1.6vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25);transition:.2s ease}
   #enableSound:hover{background:#0947a0}
-  table{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 26px rgba(10,47,107,0.08);border:1px solid var(--border)}
-  th,td{text-align:center;padding:1.6vh 0.6vw;word-wrap:break-word}
-  th{background:var(--prc-navy);color:#fff;font-size:1.35vw;height:6vh;font-weight:600}
-  td{font-size:1.9vw;font-weight:600;border-bottom:1px solid var(--border)}
+  .table-scroll{width:100%;min-width:0;overflow-x:auto;border-radius:16px}
+  table{width:100%;min-width:420px;border-collapse:collapse;table-layout:fixed;background:#fff;overflow:hidden;box-shadow:0 10px 26px rgba(10,47,107,0.08);border:1px solid var(--border)}
+  th,td{text-align:center;padding:1.4vh clamp(6px,0.6vw,14px);word-wrap:break-word}
+  th{background:var(--prc-navy);color:#fff;font-size:clamp(0.72rem,0.5vw + 0.5rem,1.1rem);height:6vh;font-weight:600}
+  td{font-size:clamp(0.8rem,0.7vw + 0.5rem,1.45rem);font-weight:600;border-bottom:1px solid var(--border)}
   tr:last-child td{border-bottom:none}
   tr:nth-child(even) td{background:#f8fafd}
   .idle{color:#9aa7bb;font-weight:500}
   .serving{color:#1e7e34;font-weight:800}
-  .type-badge{display:inline-block;margin-top:6px;font-size:0.95vw;font-weight:700;padding:3px 12px;border-radius:999px;background:var(--prc-blue-light);color:var(--prc-navy)}
+  .type-badge{display:inline-block;margin-top:6px;font-size:clamp(0.6rem,0.35vw + 0.4rem,0.85rem);font-weight:700;padding:3px 12px;border-radius:999px;background:var(--prc-blue-light);color:var(--prc-navy)}
   .type-badge.priority{background:var(--priority-bg);color:var(--priority-red)}
   .type-badge.transferred{background:#efe6fb;color:#5a349a}
   .priority-row td{background:var(--priority-bg) !important}
@@ -43,8 +46,11 @@
   @keyframes rowFlash{0%{background:rgba(13,91,196,0.14)}100%{background:transparent}}
   .priority-row.just-updated{animation:rowFlashPriority .9s ease}
   @keyframes rowFlashPriority{0%{background:rgba(179,38,30,0.20)}100%{background:var(--priority-bg)}}
+  tr.my-ticket td{background:#fff6dd !important;box-shadow:inset 0 0 0 2px #e8b923}
+  tr.my-ticket.just-updated{animation:rowFlashMine 1.4s ease}
+  @keyframes rowFlashMine{0%{background:#ffe487 !important}100%{background:#fff6dd !important}}
 
-  .side-panel{flex:3;display:flex;flex-direction:column;gap:1.4vh}
+  .side-panel{flex:3;min-width:0;display:flex;flex-direction:column;gap:1.4vh}
   .photo-carousel{position:relative;width:100%;max-width:320px;flex:1;margin:0 auto;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(10,47,107,0.08)}
   .carousel-img{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);object-fit:contain;background:#fff;border:2px solid var(--border);border-radius:8px;opacity:0;transition:opacity 1.1s ease}
   .carousel-img.active{opacity:1}
@@ -52,26 +58,25 @@
   .carousel-dots span{width:7px;height:7px;border-radius:50%;background:rgba(10,47,107,0.25);transition:background .3s,transform .3s}
   .carousel-dots span.active{background:var(--prc-blue);transform:scale(1.25)}
 
-  .feedback-panel{flex:0 0 auto;width:100%;max-width:320px;margin:0 auto;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1vh 1.2vw;background:#fff;border:1px solid var(--border);box-shadow:0 10px 26px rgba(10,47,107,0.06)}
-  .feedback-panel h2{color:var(--prc-navy);font-size:0.9vw;margin:0 0 0.2vh 0}
-  .feedback-panel p{font-size:0.65vw;color:var(--muted);margin-bottom:0.6vh;max-width:90%}
-  #feedbackButton{background:var(--prc-blue);color:#fff;border:none;padding:0.5vh 1.4vw;font-size:0.8vw;border-radius:999px;cursor:pointer;transition:.2s ease;margin-bottom:0.7vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25)}
+  .feedback-panel{flex:0 0 auto;width:100%;max-width:320px;margin:0 auto;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.2vh clamp(10px,1.2vw,20px);background:#fff;border:1px solid var(--border);box-shadow:0 10px 26px rgba(10,47,107,0.06)}
+  .feedback-panel h2{color:var(--prc-navy);font-size:clamp(0.8rem,0.35vw + 0.6rem,1rem);margin:0 0 0.2vh 0}
+  .feedback-panel p{font-size:clamp(0.62rem,0.2vw + 0.5rem,0.75rem);color:var(--muted);margin-bottom:0.6vh;max-width:90%}
+  #feedbackButton{background:var(--prc-blue);color:#fff;border:none;padding:0.6vh clamp(14px,1.4vw,22px);font-size:clamp(0.7rem,0.3vw + 0.55rem,0.85rem);border-radius:999px;cursor:pointer;transition:.2s ease;margin-bottom:0.7vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25)}
   #feedbackButton:hover{background:#0947a0}
   #qrContainer{display:flex;flex-direction:column;align-items:center}
-  #qrContainer img{width:9.5vw;height:auto;border-radius:8px;border:5px solid #fff;box-shadow:0 4px 14px rgba(10,47,107,0.12)}
-  #qrContainer p{font-size:0.65vw;color:var(--muted);margin-top:0.5vh}
+  #qrContainer img{width:clamp(90px,9vw,150px);height:auto;border-radius:8px;border:5px solid #fff;box-shadow:0 4px 14px rgba(10,47,107,0.12)}
+  #qrContainer p{font-size:clamp(0.62rem,0.2vw + 0.5rem,0.72rem);color:var(--muted);margin-top:0.5vh}
   @media (max-width:900px){
     html,body{overflow-y:auto;height:auto}
-    .topbar h1{font-size:5vw} .topbar .sub{font-size:3vw} .topbar .clock{font-size:4vw}
     .main-container{flex-direction:column;align-items:center;width:100%;gap:2.4vh;margin-top:2.4vh}
     .table-container,.side-panel{width:95%}
-    .photo-carousel{max-width:70vw;min-height:40vh}
-    .feedback-panel{max-width:70vw}
-    #enableSound{font-size:3.6vw;padding:1.4vh 4vw}
-    th{font-size:4vw} td{font-size:5vw} .type-badge{font-size:2.6vw}
-    .feedback-panel h2{font-size:4.2vw} .feedback-panel p{font-size:3vw}
-    #feedbackButton{font-size:3.6vw;padding:1.2vh 4vw}
-    #qrContainer img{width:38vw} #qrContainer p{font-size:2.6vw}
+    .photo-carousel{max-width:min(320px,90vw);min-height:38vh}
+    .feedback-panel{max-width:min(320px,90vw)}
+  }
+  @media (max-width:480px){
+    .topbar{padding:12px 14px}
+    .topbar .brand{gap:10px}
+    th,td{padding:12px 6px}
   }
 </style>
 </head>
@@ -87,13 +92,17 @@
     <div class="clock" id="clock">--:--:--</div>
   </div>
 
+  <div class="your-ticket-banner" id="yourTicketBanner" hidden></div>
+
   <div class="main-container">
     <div class="table-container">
       <button id="enableSound" onclick="window.__enableVoice()">🔊 Click to Enable Sound</button>
-      <table>
-        <thead><tr><th>Counter</th><th>Ticket</th><th>Service</th><th>Status</th></tr></thead>
-        <tbody id="display"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Counter</th><th>Ticket</th><th>Service</th><th>Status</th></tr></thead>
+          <tbody id="display"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="side-panel">
@@ -119,6 +128,24 @@
 
   <script type="module">
     import { listenCounters, cleanupStaleCounters } from "./queue-core.js?v2";
+
+    // A client's own phone opens this with ?mode=client&ticket=C-006 (linked
+    // from the kiosk after generating a ticket). On a personal device, voice
+    // announcements must never play — dozens of individual phones speaking
+    // over each other, out of sync with the real office speakers, would be
+    // chaos. The public wall-mounted display keeps full sound support.
+    const params = new URLSearchParams(location.search);
+    const isClientView = params.get('mode') === 'client';
+    const myTicket = (params.get('ticket') || '').trim();
+
+    if (isClientView) {
+      document.getElementById('enableSound').remove();
+      if (myTicket) {
+        const banner = document.getElementById('yourTicketBanner');
+        banner.textContent = `🎫 Your ticket: ${myTicket} — this will highlight below once it's called`;
+        banner.hidden = false;
+      }
+    }
 
     let voices = [];
     let soundEnabled = false;
@@ -175,6 +202,7 @@
         const transferred = (ticket || '').startsWith('T-');
         const tr = document.createElement('tr');
         if (priority && (status || '').toLowerCase() === 'now serving') tr.classList.add('priority-row');
+        if (myTicket && ticket === myTicket) tr.classList.add('my-ticket');
 
         let serviceCell = service || '-';
         if (priority) {
@@ -199,6 +227,12 @@
         lastRowState[counter] = stateKey;
 
         tbody.appendChild(tr);
+
+        if (myTicket && ticket === myTicket && (status || '').toLowerCase() === 'now serving') {
+          tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const banner = document.getElementById('yourTicketBanner');
+          if (banner) banner.textContent = `🎫 It's your turn! ${myTicket} is now being served at ${counter}`;
+        }
 
         const dedupeKey = `${ticket}|${recallCount || 0}`;
         if (soundEnabled && (status || '').toLowerCase() === 'now serving' && ticket && lastAnnounced[counter] !== dedupeKey) {
