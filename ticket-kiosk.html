@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>PRC Robinsons Starmills · Queue Kiosk</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --prc-navy:#0a2f6b; --prc-blue:#0d5bc4; --prc-blue-light:#eaf2ff;
+      --priority-red:#b3261e; --priority-bg:#fdeceb; --danger:#c82333; --success:#1e7e34;
+      --bg:#f4f7fc; --card-bg:#ffffff; --muted:#5e6f8d;
+      --r-sm:12px; --r-md:20px; --r-lg:28px; --r-pill:999px;
+      --shadow:0 12px 30px rgba(10,47,107,0.10); --radius:var(--r-lg);
+    }
+    body { font-family: system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:var(--bg); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; margin:0; -webkit-font-smoothing:antialiased; }
+    .app-container { width:100%; max-width:480px; background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px 20px 32px; position:relative; }
+    .app-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:8px 12px; background:linear-gradient(90deg,var(--prc-navy),var(--prc-blue)); margin:-24px -20px 20px -20px; padding:18px 20px; border-radius:var(--radius) var(--radius) 0 0; }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .brand-icon { background:rgba(255,255,255,0.16); color:#fff; width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .brand h1 { font-size:1.15rem; font-weight:700; color:#fff; letter-spacing:-0.2px; }
+    .brand .sub { font-size:0.72rem; color:rgba(255,255,255,0.8); display:flex; align-items:center; gap:6px; }
+    .live-dot{width:6px;height:6px;border-radius:50%;background:#3ddc84;animation:pulse 1.6s infinite}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,0.55)}70%{box-shadow:0 0 0 6px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+    .instructions { font-size:0.85rem; color:var(--muted); text-align:center; margin:0 0 16px; line-height:1.4; }
+    .ticket-stage { background:var(--prc-blue-light); border-radius:24px; padding:32px 16px 28px; margin:8px 0 16px; text-align:center; border:1px solid rgba(13,91,196,0.10); min-height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:background .2s, border-color .2s; }
+    .ticket-stage.priority { background:var(--priority-bg); border-color:#f3c6c2; }
+    .ticket-placeholder { color:var(--muted); font-size:1rem; opacity:0.7; display:flex; flex-direction:column; gap:6px; }
+    .ticket-placeholder span { font-size:2.6rem; opacity:0.5; }
+    .ticket-number { background:white; padding:16px 24px; border-radius:80px; box-shadow:0 8px 20px rgba(10,47,107,0.10); font-size:3.2rem; font-weight:700; letter-spacing:2px; color:var(--prc-navy); border:1px solid rgba(255,255,255,0.6); display:inline-block; margin-bottom:8px; word-break:break-word; max-width:100%; animation:ticketPop .45s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes ticketPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+    .ticket-stage.just-issued{animation:issuedGlow 1s ease}
+    @keyframes issuedGlow{0%{box-shadow:0 0 0 0 rgba(13,91,196,0.35)}100%{box-shadow:0 0 0 22px rgba(13,91,196,0)}}
+    .ticket-stage.priority.just-issued{animation:issuedGlowRed 1s ease}
+    @keyframes issuedGlowRed{0%{box-shadow:0 0 0 0 rgba(179,38,30,0.35)}100%{box-shadow:0 0 0 22px rgba(179,38,30,0)}}
+    .ticket-stage.priority .ticket-number { color:var(--priority-red); }
+    .ticket-label { font-size:0.9rem; font-weight:500; color:var(--muted); background:rgba(255,255,255,0.7); padding:4px 16px; border-radius:40px; }
+    .ticket-service { margin-top:12px; font-weight:500; color:#1a3d66; background:white; padding:6px 18px; border-radius:40px; font-size:0.95rem; box-shadow:0 2px 6px rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.02); }
+    .ticket-type-badge { margin-top:8px; background:var(--priority-red); color:white; padding:4px 18px; border-radius:40px; font-size:0.8rem; font-weight:600; letter-spacing:0.5px; display:inline-block; border:1px solid rgba(255,255,255,0.2); }
+    .ticket-timestamp, .ticket-location { margin-top:10px; font-size:0.75rem; background:rgba(10,47,107,0.05); padding:6px 14px; border-radius:40px; color:#1f3a5f; font-weight:500; letter-spacing:0.3px; border:1px solid rgba(10,47,107,0.05); display:inline-block; }
+    .ticket-actions { display:none; flex-direction:column; gap:10px; margin:0 0 20px; }
+    .ticket-actions.visible { display:flex; }
+    .save-tip { font-size:0.82rem; color:var(--prc-navy); background:var(--prc-blue-light); border:1px dashed rgba(13,91,196,0.35); border-radius:var(--r-md); padding:10px 14px; text-align:center; line-height:1.4; }
+    .controls { display:flex; flex-direction:column; gap:14px; margin-top:6px; }
+    .control-group { display:flex; flex-direction:column; gap:6px; }
+    .control-group label { font-size:0.85rem; font-weight:500; color:var(--muted); letter-spacing:0.3px; padding-left:6px; }
+    select, .btn-primary, .btn-outline { width:100%; padding:16px 18px; font-size:1rem; border-radius:60px; border:1px solid #dae2ed; background:white; transition:all 0.2s; font-weight:500; color:var(--prc-navy); cursor:pointer; }
+    select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235e6f8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 18px center; background-size:18px; }
+    select:focus, .btn-primary:focus, .btn-outline:focus { outline:2px solid var(--prc-blue); outline-offset:2px; border-color:var(--prc-blue); }
+    .btn-primary { background:var(--prc-blue); color:white; border:none; font-weight:600; box-shadow:0 8px 18px rgba(13,91,196,0.25); display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-primary:hover { background:#0947a0; transform:scale(0.98); }
+    .btn-primary:active { transform:scale(0.96); }
+    .btn-primary:disabled, .btn-outline:disabled { opacity:0.55; transform:none; box-shadow:none; pointer-events:none; }
+    .btn-outline { display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-outline:hover { background:#f0f4fe; }
+    .status-message { font-size:0.9rem; min-height:1.6rem; color:var(--muted); text-align:center; padding:4px 0; }
+    .status-message.warn { color:var(--priority-red); font-weight:600; }
+    .priority-checkbox-wrap { display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:var(--r-md); background:var(--priority-bg); border:1px solid #f3c6c2; cursor:pointer; font-size:0.85rem; color:var(--priority-red); font-weight:600; }
+    .priority-checkbox-wrap input { width:18px; height:18px; accent-color:var(--priority-red); cursor:pointer; margin:0; flex-shrink:0; }
+    .priority-sub { display:none; animation:fadeSlide 0.2s ease; }
+    .priority-sub.visible { display:block; }
+    @keyframes fadeSlide { 0% { opacity:0; transform:translateY(-6px); } 100% { opacity:1; transform:translateY(0); } }
+    .modal { display:none; position:fixed; inset:0; z-index:4000; align-items:center; justify-content:center; pointer-events:none; }
+    .modal.show { display:flex; pointer-events:all; }
+    .modal-backdrop { position:absolute; inset:0; background:rgba(0,20,30,0.4); backdrop-filter:blur(4px); opacity:0; transition:opacity 0.25s; }
+    .modal.show .modal-backdrop { opacity:1; }
+    .modal-panel { position:relative; background:white; max-width:360px; width:92%; border-radius:32px; padding:28px 20px 24px; text-align:center; box-shadow:0 40px 80px rgba(0,0,0,0.20); transform:translateY(20px) scale(0.96); opacity:0; transition:transform 0.3s cubic-bezier(0.2,0.9,0.3,1), opacity 0.25s; }
+    .modal.show .modal-panel { transform:translateY(0) scale(1); opacity:1; }
+    .modal-panel h3 { font-size:1.4rem; font-weight:600; margin-bottom:8px; color:var(--prc-navy); }
+    .modal-panel p { color:var(--muted); margin:8px 0 20px; line-height:1.4; }
+    .modal-actions { display:flex; gap:12px; justify-content:center; }
+    .modal-actions .btn { padding:12px 24px; border-radius:60px; border:none; font-weight:600; cursor:pointer; transition:0.15s; }
+    .modal-actions .btn-primary-solid { background:var(--prc-blue); color:white; box-shadow:0 4px 10px rgba(13,91,196,0.2); }
+    .modal-actions .btn-primary-solid:hover { background:#0947a0; }
+    .modal-actions .btn-primary-solid:disabled { background:#c7d3e6; color:#8a97ac; box-shadow:none; cursor:not-allowed; }
+    .modal-actions .btn-ghost { background:transparent; border:1px solid #d0dbe8; color:#1f3a5f; }
+    .login-field-wrap { display:flex; flex-direction:column; gap:12px; margin:14px 0; }
+    .login-text-input { width:100%; height:50px; font-size:16px; text-align:left; border-radius:var(--r-pill); border:1px solid #d6dce6; background:#f8faff; padding:0 20px; font-weight:500; color:var(--prc-navy); }
+    .login-text-input:focus { border-color:var(--prc-blue); box-shadow:0 0 0 4px rgba(13,91,196,0.10); background:white; outline:none; }
+    .login-error { color:var(--danger); font-size:0.85rem; min-height:1.4rem; }
+    .staff-toggle { text-align:center; margin:14px 0 4px; }
+    .staff-toggle button { background:none; border:none; color:var(--muted); font-size:0.78rem; text-decoration:underline; cursor:pointer; padding:4px; }
+    .staff-badge { display:none; align-items:center; justify-content:space-between; gap:10px; background:#eafbf1; border:1px solid #b7e4c7; color:#1e7e34; font-size:0.78rem; font-weight:600; padding:8px 14px; border-radius:var(--r-pill); margin:0 0 16px; }
+    .staff-badge.visible { display:flex; }
+    .staff-badge button { background:none; border:none; color:#1e7e34; text-decoration:underline; font-size:0.78rem; font-weight:600; cursor:pointer; padding:0; }
+    @media (max-width:420px) { .app-container { padding:16px; } .ticket-number { font-size:2.6rem; padding:14px 18px; } }
+  </style>
+</head>
+<body>
+
+  <div id="main" class="app-container">
+    <header class="app-header">
+      <div class="brand"><div class="brand-icon">🎫</div><div><h1>Queue Kiosk</h1><div class="sub"><span class="live-dot"></span> PRC Robinsons Starmills</div></div></div>
+    </header>
+
+    <p class="instructions">Select your transaction, generate your ticket, then show it (screenshot or downloaded) to the counter when your number is called.</p>
+
+    <div class="staff-badge" id="staffBadge">
+      <span>👤 Staff override active — unlimited tickets</span>
+      <button id="staffExitBtn" type="button">Exit</button>
+    </div>
+
+    <div class="ticket-stage" id="ticketStage">
+      <div id="ticketDisplay" class="ticket-placeholder"><span>🪪</span><span style="font-size:0.9rem; opacity:0.6;">your ticket appears here</span></div>
+    </div>
+
+    <div class="ticket-actions" id="ticketActions">
+      <div class="save-tip">📸 Screenshot this ticket, or download it below — you'll need to show it at the counter.</div>
+      <button id="downloadTicketBtn" class="btn-outline" type="button">⬇️ Download ticket</button>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="service">Service</label>
+        <select id="service"></select>
+      </div>
+
+      <label class="priority-checkbox-wrap">
+        <input type="checkbox" id="priorityCheckbox">
+        <span>⭐ This is a priority transaction (Senior Citizen / PWD / Pregnant / Solo Parent)</span>
+      </label>
+
+      <div class="control-group priority-sub" id="prioritySub">
+        <label for="priorityReason">Priority Reason</label>
+        <select id="priorityReason">
+          <option value="Senior Citizen">Senior Citizen</option>
+          <option value="PWD">PWD</option>
+          <option value="Pregnant Woman">Pregnant Woman</option>
+          <option value="Solo Parent">Solo Parent</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <button id="generateBtn" class="btn-primary"><span>➕</span> Generate ticket</button>
+      <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <div class="staff-toggle" id="staffToggleWrap">
+      <button id="staffSignInLink" type="button">PRC staff? Sign in to generate for a client</button>
+    </div>
+  </div>
+
+  <div id="staffLoginModal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+      <h3>👤 Staff Sign-in</h3>
+      <p>For PRC staff helping a client whose device can't generate a ticket (e.g. already used today, or an error). Signing in removes the daily limit until you exit.</p>
+      <div class="login-field-wrap">
+        <input id="staffLoginId" class="login-text-input" type="text" placeholder="User ID" autocomplete="username">
+        <input id="staffLoginPassword" class="login-text-input" type="password" placeholder="Password" autocomplete="current-password">
+      </div>
+      <div class="login-error" id="staffLoginError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary-solid" id="staffLoginBtn">Sign in</button>
+        <button class="btn btn-ghost" id="staffLoginCancelBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+      <h3>📌 Confirm</h3>
+      <p id="confirmText">Generate a ticket for this service?</p>
+      <label id="confirmPriorityCheckWrap" style="display:none; align-items:flex-start; gap:8px; text-align:left; margin:4px 0 16px; padding:12px 14px; border-radius:var(--r-md); background:var(--priority-bg); border:1px solid #f3c6c2; cursor:pointer;">
+        <input type="checkbox" id="confirmPriorityCheck" style="margin-top:2px; accent-color:var(--priority-red); cursor:pointer; flex-shrink:0;">
+        <span id="confirmPriorityText" style="font-size:0.82rem; color:var(--priority-red); font-weight:600;">I confirm I truly qualify for priority under the selected reason. If I can't show proof at the counter, this ticket will be cancelled and I'll need to line up again as a regular transaction.</span>
+      </label>
+      <div class="modal-actions">
+        <button class="btn btn-primary-solid" id="confirmYesBtn">Yes</button>
+        <button class="btn btn-ghost" id="confirmNoBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SERVICES, addQueueTicket, getManilaDateString, signIn, signOut, getCurrentUser, resolveStaffLoginEmail } from "./queue-core.js?v2";
+
+    const LOCATION = "PRC Service Center: Robinsons Starmills";
+    const DAILY_LOG_KEY = "queueplus_daily_tickets_v1";
+
+    const staffBadge = document.getElementById('staffBadge');
+    const staffExitBtn = document.getElementById('staffExitBtn');
+    const staffToggleWrap = document.getElementById('staffToggleWrap');
+    const staffSignInLink = document.getElementById('staffSignInLink');
+    const staffLoginModal = document.getElementById('staffLoginModal');
+    const staffLoginId = document.getElementById('staffLoginId');
+    const staffLoginPassword = document.getElementById('staffLoginPassword');
+    const staffLoginError = document.getElementById('staffLoginError');
+    const staffLoginBtn = document.getElementById('staffLoginBtn');
+    const confirmPriorityText = document.getElementById('confirmPriorityText');
+
+    let isStaffMode = false;
+    const CLIENT_PRIORITY_TEXT = "I confirm I truly qualify for priority under the selected reason. If I can't show proof at the counter, this ticket will be cancelled and I'll need to line up again as a regular transaction.";
+    const STAFF_PRIORITY_TEXT = "I confirm this client qualifies for priority under the selected reason.";
+
+    const serviceSelect = document.getElementById('service');
+    const priorityCheckbox = document.getElementById('priorityCheckbox');
+    const prioritySub = document.getElementById('prioritySub');
+    const priorityReasonSelect = document.getElementById('priorityReason');
+    const generateBtn = document.getElementById('generateBtn');
+    const ticketStage = document.getElementById('ticketStage');
+    const ticketDisplay = document.getElementById('ticketDisplay');
+    const ticketActions = document.getElementById('ticketActions');
+    const downloadTicketBtn = document.getElementById('downloadTicketBtn');
+    const statusMsg = document.getElementById('statusMessage');
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmText = document.getElementById('confirmText');
+    const confirmPriorityCheckWrap = document.getElementById('confirmPriorityCheckWrap');
+    const confirmPriorityCheck = document.getElementById('confirmPriorityCheck');
+    const confirmYesBtn = document.getElementById('confirmYesBtn');
+
+    let selectedService = "", selectedIsPriority = false, selectedPriorityReason = "";
+    let lastTicket = null; // { number, service, isPriority, priorityReason, timestampStr }
+
+    function setStatus(msg, isWarn) {
+      statusMsg.textContent = msg || "";
+      statusMsg.classList.toggle('warn', !!isWarn);
+    }
+    function getCurrentTimestamp() {
+      const now = new Date();
+      return `${now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })} · ${now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true })}`;
+    }
+
+    // ---------- One ticket per transaction type per day, on this device ----------
+    // Enforced client-side via localStorage, since the kiosk now runs on the
+    // client's own phone rather than a shared, staff-supervised device.
+    function loadDailyLog() {
+      try { return JSON.parse(localStorage.getItem(DAILY_LOG_KEY)) || {}; }
+      catch (e) { return {}; }
+    }
+    function saveDailyLog(log) {
+      try { localStorage.setItem(DAILY_LOG_KEY, JSON.stringify(log)); } catch (e) { /* storage unavailable — degrade silently */ }
+    }
+    function hasTicketToday(serviceName) {
+      const log = loadDailyLog();
+      return log[serviceName] === getManilaDateString();
+    }
+    function markTicketToday(serviceName) {
+      const log = loadDailyLog();
+      log[serviceName] = getManilaDateString();
+      saveDailyLog(log);
+    }
+    // `showMessage` is false when called right after a generate attempt, so this
+    // doesn't stomp on the success/error message that attempt just set.
+    // Staff mode bypasses the limit entirely — it exists to let a client whose
+    // device is already blocked (or who erred) get a ticket via a PRC staff member.
+    function updateDailyLimitState(showMessage) {
+      const svc = serviceSelect.value;
+      const used = !isStaffMode && !!svc && hasTicketToday(svc);
+      generateBtn.disabled = used;
+      if (!showMessage) return;
+      if (used) setStatus(`⚠️ You already generated a "${svc}" ticket today on this device.`, true);
+      else setStatus('');
+    }
+
+    function renderTicket(ticketNumber, serviceName, isPriority, priorityReason) {
+      ticketStage.classList.toggle('priority', !!isPriority);
+      if (!ticketNumber) {
+        ticketDisplay.innerHTML = `<span>🪪</span><span style="font-size:0.9rem; opacity:0.6;">your ticket appears here</span>`;
+        return;
+      }
+      const typeHtml = isPriority ? `<div class="ticket-type-badge">⭐ Priority${priorityReason ? ' — ' + priorityReason : ''}</div>` : '';
+      const serviceHtml = serviceName ? `<div class="ticket-service">${serviceName}</div>` : '';
+      ticketDisplay.innerHTML = `
+        <div class="ticket-number">${ticketNumber}</div>
+        ${serviceHtml}${typeHtml}
+        <div class="ticket-timestamp">🕒 ${getCurrentTimestamp()}</div>
+        <div class="ticket-location">📍 ${LOCATION}</div>
+        <div class="ticket-label" style="margin-top:10px;">📸 show this to the counter</div>`;
+    }
+
+    function loadServices() {
+      serviceSelect.innerHTML = '';
+      SERVICES.forEach(svc => {
+        const opt = document.createElement("option");
+        opt.value = svc.name; opt.textContent = `${svc.code} - ${svc.name}`;
+        serviceSelect.appendChild(opt);
+      });
+      updateDailyLimitState(true);
+    }
+    priorityCheckbox.addEventListener('change', () => {
+      prioritySub.classList.toggle('visible', priorityCheckbox.checked);
+    });
+    serviceSelect.addEventListener('change', () => updateDailyLimitState(true));
+
+    generateBtn.addEventListener('click', () => {
+      const service = serviceSelect.value;
+      if (!service) { setStatus("⚠️ Please select a service"); return; }
+      if (!isStaffMode && hasTicketToday(service)) { updateDailyLimitState(true); return; } // safety net; button should already be disabled
+      const isPriority = priorityCheckbox.checked;
+      const priorityReason = isPriority ? priorityReasonSelect.value : '';
+      selectedService = service; selectedIsPriority = isPriority; selectedPriorityReason = priorityReason;
+      let msg = `Generate ticket for "${service}"`;
+      if (isPriority) msg += ` (⭐ Priority — ${priorityReason})`;
+      confirmText.textContent = msg + '?';
+      confirmPriorityText.textContent = isStaffMode ? STAFF_PRIORITY_TEXT : CLIENT_PRIORITY_TEXT;
+      if (isPriority) {
+        confirmPriorityCheckWrap.style.display = 'flex';
+        confirmPriorityCheck.checked = false;
+        confirmYesBtn.disabled = true;
+      } else {
+        confirmPriorityCheckWrap.style.display = 'none';
+        confirmYesBtn.disabled = false;
+      }
+      confirmModal.classList.add('show');
+    });
+    confirmPriorityCheck.addEventListener('change', () => {
+      confirmYesBtn.disabled = !confirmPriorityCheck.checked;
+    });
+
+    document.getElementById('confirmNoBtn').addEventListener('click', ()=> confirmModal.classList.remove('show'));
+    confirmYesBtn.addEventListener('click', async () => {
+      if (selectedIsPriority && !confirmPriorityCheck.checked) return; // extra safety, button should already be disabled
+      confirmModal.classList.remove('show');
+      if (!selectedService) return;
+      const service = selectedService, isPriority = selectedIsPriority, priorityReason = selectedPriorityReason;
+
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<span>⏳</span> Processing…';
+      ticketActions.classList.remove('visible');
+      setStatus("Generating…");
+      renderTicket('⏳', service, isPriority, priorityReason);
+
+      try {
+        // Priority is a flag on the real service, not a separate pseudo-service —
+        // callNext automatically serves priority tickets first within that service's
+        // own queue, so staff never need to select "Priority Transaction" separately.
+        const data = await addQueueTicket(service, isPriority, priorityReason);
+        renderTicket(data.ticket, service, isPriority, priorityReason);
+        ticketStage.classList.remove('just-issued'); void ticketStage.offsetWidth; ticketStage.classList.add('just-issued');
+        setStatus('✅ Ticket ready! Screenshot or download it below.');
+        lastTicket = { number: data.ticket, service, isPriority, priorityReason, timestampStr: getCurrentTimestamp() };
+        ticketActions.classList.add('visible');
+        if (!isStaffMode) markTicketToday(service);
+      } catch (err) {
+        renderTicket(null);
+        setStatus(`⚠️ ${err.message || 'Error'}`);
+      }
+      // Always reset priority state after an attempt, success or failure, so it
+      // never carries over to the next client by accident.
+      priorityCheckbox.checked = false;
+      prioritySub.classList.remove('visible');
+      priorityReasonSelect.selectedIndex = 0;
+      generateBtn.innerHTML = '<span>➕</span> Generate ticket';
+      updateDailyLimitState(false);
+    });
+
+    // ---------- Download ticket as an image, for clients without a screenshot habit ----------
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+    function downloadTicketImage() {
+      if (!lastTicket) return;
+      const w = 640, h = 560;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      const isPriority = !!lastTicket.isPriority;
+
+      ctx.fillStyle = '#f4f7fc'; ctx.fillRect(0, 0, w, h);
+      const grad = ctx.createLinearGradient(0, 0, w, 0);
+      grad.addColorStop(0, '#0a2f6b'); grad.addColorStop(1, '#0d5bc4');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, w, 110);
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.font = '700 26px system-ui, sans-serif';
+      ctx.fillText('PRC Robinsons Starmills', w / 2, 50);
+      ctx.font = '500 15px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillText('Queue Ticket', w / 2, 78);
+
+      ctx.fillStyle = isPriority ? '#fdeceb' : '#eaf2ff';
+      roundRect(ctx, 40, 140, w - 80, 340, 24); ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      roundRect(ctx, w / 2 - 150, 175, 300, 100, 50); ctx.fill();
+      ctx.fillStyle = isPriority ? '#b3261e' : '#0a2f6b';
+      ctx.font = '800 52px system-ui, sans-serif';
+      ctx.fillText(lastTicket.number, w / 2, 240);
+
+      ctx.font = '600 19px system-ui, sans-serif'; ctx.fillStyle = '#1a3d66';
+      ctx.fillText(lastTicket.service, w / 2, 312);
+
+      let y = 345;
+      if (isPriority) {
+        ctx.fillStyle = '#b3261e'; ctx.font = '700 15px system-ui, sans-serif';
+        ctx.fillText(`⭐ Priority — ${lastTicket.priorityReason}`, w / 2, y);
+        y += 28;
+      }
+      ctx.font = '500 14px system-ui, sans-serif'; ctx.fillStyle = '#5e6f8d';
+      ctx.fillText(`🕒 ${lastTicket.timestampStr}`, w / 2, y); y += 24;
+      ctx.fillText(`📍 ${LOCATION}`, w / 2, y);
+
+      ctx.font = '600 14px system-ui, sans-serif'; ctx.fillStyle = '#0a2f6b';
+      ctx.fillText('Show this ticket at the counter', w / 2, 445);
+
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `queue-ticket-${lastTicket.number}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+      }, 'image/png');
+    }
+    downloadTicketBtn.addEventListener('click', downloadTicketImage);
+
+    // ---------- Staff override: an authenticated PRC staff member can generate
+    // unlimited tickets on this device, for clients who erroneously used up
+    // their daily ticket or otherwise can't self-serve. ----------
+    function setStaffMode(on) {
+      isStaffMode = on;
+      staffBadge.classList.toggle('visible', on);
+      staffToggleWrap.style.display = on ? 'none' : 'block';
+      updateDailyLimitState(true);
+    }
+    function openStaffLoginModal() {
+      staffLoginId.value = ''; staffLoginPassword.value = ''; staffLoginError.textContent = '';
+      staffLoginModal.classList.add('show');
+      setTimeout(() => staffLoginId.focus(), 80);
+    }
+    function closeStaffLoginModal() { staffLoginModal.classList.remove('show'); }
+    staffSignInLink.addEventListener('click', openStaffLoginModal);
+    document.getElementById('staffLoginCancelBtn').addEventListener('click', closeStaffLoginModal);
+    async function attemptStaffLogin() {
+      const id = (staffLoginId.value || '').trim();
+      const pw = (staffLoginPassword.value || '').trim();
+      if (!id || !pw) { staffLoginError.textContent = 'Enter your User ID and password.'; return; }
+      staffLoginBtn.disabled = true; staffLoginBtn.textContent = '…';
+      try {
+        await signIn(resolveStaffLoginEmail(id), pw);
+        closeStaffLoginModal();
+        setStaffMode(true);
+      } catch (err) {
+        staffLoginError.textContent = err.message || 'Invalid User ID or password.';
+        staffLoginPassword.value = ''; staffLoginPassword.focus();
+      }
+      staffLoginBtn.disabled = false; staffLoginBtn.textContent = 'Sign in';
+    }
+    staffLoginBtn.addEventListener('click', attemptStaffLogin);
+    staffLoginPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptStaffLogin(); });
+    staffExitBtn.addEventListener('click', async () => {
+      await signOut();
+      setStaffMode(false);
+    });
+
+    document.querySelectorAll('.modal-backdrop').forEach(el => {
+      el.addEventListener('click', function() { this.closest('.modal').classList.remove('show'); });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { confirmModal.classList.remove('show'); closeStaffLoginModal(); }
+    });
+
+    loadServices();
+    renderTicket(null);
+    getCurrentUser().then(user => { if (user) setStaffMode(true); });
+  </script>
+</body>
+</html>
