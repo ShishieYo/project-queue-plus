@@ -851,7 +851,7 @@ function buildInsights(agg){
   }
   if (agg.totalPriority > 0) {
     const pctP = ((agg.totalPriority/agg.total)*100).toFixed(1);
-    lines.push(`${agg.totalPriority} transaction${agg.totalPriority===1?'':'s'} (${pctP}%) were priority (Senior/PWD/Pregnant/Solo Parent).`);
+    lines.push(`${agg.totalPriority} transaction${agg.totalPriority===1?'':'s'} (${pctP}%) were priority (Senior/PWD/Pregnant).`);
   }
   return lines;
 }
