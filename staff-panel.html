@@ -287,13 +287,23 @@
   <div class="modal-backdrop" id="transferBackdrop" tabindex="-1">
     <div class="modal" id="transferModal">
       <h3>🔀 Transfer Client</h3>
-      <p style="color:#444">Marks the current ticket at <b id="transferFromCounter">this counter</b> as done, and issues a new <b>T-XXX</b> ticket for the service the client actually needs. That new ticket jumps ahead of the regular line for that service.</p>
-      <label style="display:block;font-weight:700;margin-bottom:6px;text-align:left">Transfer to service</label>
-      <select id="transferServiceSelect" style="width:100%"></select>
-      <div id="transferMessage" style="min-height:20px;margin-top:10px;font-size:13px"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button class="btn-secondary" id="transferCancelBtn">Cancel</button>
-        <button id="transferConfirmBtn" style="background:#6f42c1">Transfer</button>
+      <div id="transferForm">
+        <p style="color:#444">Marks the current ticket at <b id="transferFromCounter">this counter</b> as done, and issues a new <b>T-XXX</b> ticket for the service the client actually needs. That new ticket jumps ahead of the regular line for that service.</p>
+        <label style="display:block;font-weight:700;margin-bottom:6px;text-align:left">Transfer to service</label>
+        <select id="transferServiceSelect" style="width:100%"></select>
+        <div id="transferMessage" style="min-height:20px;margin-top:10px;font-size:13px"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn-secondary" id="transferCancelBtn">Cancel</button>
+          <button id="transferConfirmBtn" style="background:#6f42c1">Transfer</button>
+        </div>
+      </div>
+      <div id="transferResult" style="display:none">
+        <p style="color:#444;margin-bottom:4px">Transferred. Give the client this new ticket number for <b id="transferResultService"></b>:</p>
+        <div id="transferResultTicket" style="font-size:2.4rem;font-weight:800;color:#6f42c1;letter-spacing:1px;margin:10px 0"></div>
+        <p style="color:#888;font-size:12px">Write it down before closing this window.</p>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px">
+          <button id="transferCloseBtn" style="background:#6f42c1">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -756,6 +766,11 @@ const transferServiceSelect = document.getElementById('transferServiceSelect');
 const transferMessage = document.getElementById('transferMessage');
 const transferFromCounter = document.getElementById('transferFromCounter');
 const transferConfirmBtn = document.getElementById('transferConfirmBtn');
+const transferForm = document.getElementById('transferForm');
+const transferResult = document.getElementById('transferResult');
+const transferResultService = document.getElementById('transferResultService');
+const transferResultTicket = document.getElementById('transferResultTicket');
+const transferCloseBtn = document.getElementById('transferCloseBtn');
 
 function showTransferModal(){
   const counter = document.getElementById('counter').value;
@@ -765,21 +780,26 @@ function showTransferModal(){
   transferServiceSelect.innerHTML = '';
   SERVICES.forEach(svc => { const opt=document.createElement('option'); opt.value=svc.name; opt.textContent=`${svc.code} - ${svc.name}`; transferServiceSelect.appendChild(opt); });
   transferMessage.textContent = '';
+  transferForm.style.display = 'block';
+  transferResult.style.display = 'none';
   transferBackdrop.style.display='flex'; transferModal.classList.remove('closing'); transferModal.classList.add('show');
 }
 function hideTransferModal(){ transferModal.classList.remove('show'); transferModal.classList.add('closing'); setTimeout(()=>{ transferBackdrop.style.display='none'; transferModal.classList.remove('closing'); }, 260); }
 document.getElementById('transferBtn').addEventListener('click', showTransferModal);
 document.getElementById('transferCancelBtn').addEventListener('click', hideTransferModal);
+transferCloseBtn.addEventListener('click', hideTransferModal);
 transferConfirmBtn.addEventListener('click', async () => {
   const counter = document.getElementById('counter').value;
   const targetService = transferServiceSelect.value;
   transferConfirmBtn.disabled = true; transferMessage.textContent = '⏳ Transferring...';
   try {
     const r = await transferClient(counter, targetService);
-    transferMessage.textContent = `✅ Transferred. New ticket ${r.newTicket} (${r.targetService}) is now first in line.`;
     toast(`🔀 Transferred — new ticket ${r.newTicket} (${r.targetService}) issued.`, 'success');
     refreshTodayStats();
-    setTimeout(hideTransferModal, 900);
+    transferResultService.textContent = r.targetService;
+    transferResultTicket.textContent = r.newTicket;
+    transferForm.style.display = 'none';
+    transferResult.style.display = 'block';
   } catch (err) {
     transferMessage.textContent = '❌ ' + (err.message || 'Transfer failed.');
     toast(transferMessage.textContent, 'error');
