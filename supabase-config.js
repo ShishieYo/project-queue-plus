@@ -19,4 +19,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = "https://fmroaebtupqbdwmqqulf.supabase.co"; // e.g. https://abcxyz.supabase.co — NOT a key
 const SUPABASE_ANON_KEY = "sb_publishable_PYjTuMd9JwnUdbWSpRTvSw_93_A3F16"; // sb_publishable_... — never sb_secret_...
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// persistSession: false — these devices are shared kiosks/counter terminals,
+// so a login must not survive a page reload or carry over to the next
+// person who uses the browser. Staff still stay signed in for the rest of
+// the current page session (autoRefreshToken keeps their token alive).
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false }
+});
