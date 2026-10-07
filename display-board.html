@@ -24,30 +24,42 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,0.5)}70%{box-shadow:0 0 0 6px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
   .topbar .clock{font-size:clamp(0.85rem,0.8vw + 0.5rem,1.25rem);font-weight:600;opacity:0.95;white-space:nowrap}
   .your-ticket-banner{width:95%;max-width:900px;margin:1.6vh auto 0;background:var(--prc-blue-light);border:1px solid rgba(13,91,196,0.18);border-radius:var(--r-md);padding:10px 18px;text-align:center;color:var(--prc-navy);font-weight:700;font-size:clamp(0.85rem,1vw + 0.5rem,1.1rem)}
-  .main-container{display:flex;width:95%;min-width:0;flex:1;margin-top:2.4vh;justify-content:flex-start;gap:2vw;align-items:stretch}
-  .table-container{flex:7;min-width:0;display:flex;flex-direction:column;align-items:stretch}
-  #enableSound{align-self:center;background:var(--prc-blue);color:#fff;border:none;padding:0.9vh clamp(14px,2vw,28px);border-radius:999px;cursor:pointer;font-size:clamp(0.8rem,0.6vw + 0.55rem,1.05rem);margin-bottom:1.6vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25);transition:.2s ease}
+  .main-container{display:flex;width:95%;min-width:0;flex:1;min-height:0;margin-top:2.4vh;justify-content:flex-start;gap:2vw;align-items:stretch}
+  .table-container{flex:7;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:stretch}
+  #enableSound{align-self:center;background:var(--prc-blue);color:#fff;border:none;padding:0.9vh clamp(14px,2vw,28px);border-radius:999px;cursor:pointer;font-size:clamp(0.8rem,0.6vw + 0.55rem,1.05rem);margin-bottom:1.6vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25);transition:.2s ease;flex:0 0 auto}
   #enableSound:hover{background:#0947a0}
-  .table-scroll{width:100%;min-width:0;overflow-x:auto;border-radius:16px}
-  table{width:100%;min-width:420px;border-collapse:collapse;table-layout:fixed;background:#fff;overflow:hidden;box-shadow:0 10px 26px rgba(10,47,107,0.08);border:1px solid var(--border)}
-  th,td{text-align:center;padding:1.4vh clamp(6px,0.6vw,14px);word-wrap:break-word}
-  th{background:var(--prc-navy);color:#fff;font-size:clamp(0.72rem,0.5vw + 0.5rem,1.1rem);height:6vh;font-weight:600}
-  td{font-size:clamp(0.8rem,0.7vw + 0.5rem,1.45rem);font-weight:600;border-bottom:1px solid var(--border)}
-  tr:last-child td{border-bottom:none}
-  tr:nth-child(even) td{background:#f8fafd}
-  .idle{color:#9aa7bb;font-weight:500}
-  .serving{color:#1e7e34;font-weight:800}
-  .type-badge{display:inline-block;margin-top:6px;font-size:clamp(0.6rem,0.35vw + 0.4rem,0.85rem);font-weight:700;padding:3px 12px;border-radius:999px;background:var(--prc-blue-light);color:var(--prc-navy)}
+  .table-scroll{width:100%;min-width:0;flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;border-radius:16px}
+
+  /* Counter table is a CSS Grid, not a real <table> — grid-auto-rows:1fr on
+     .counter-body divides whatever height is available equally among the
+     current counter rows, so it adapts to any number of counters (5, 7, 10, ...)
+     with no JS recalculation and no hardcoded row height. */
+  .counter-table{width:100%;height:100%;min-width:420px;display:flex;flex-direction:column;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 26px rgba(10,47,107,0.08);border:1px solid var(--border)}
+  .counter-head,.counter-row{display:grid;grid-template-columns:0.9fr 1fr 1.5fr 1.1fr}
+  .counter-head{flex:0 0 auto;background:var(--prc-navy)}
+  .counter-head .cell{color:#fff;font-size:clamp(0.75rem,0.6vw + 0.5rem,1.2rem);font-weight:700;padding:1.2vh clamp(6px,0.6vw,14px)}
+  .counter-body{flex:1;min-height:0;display:grid;grid-auto-rows:1fr}
+  .counter-row{min-height:0}
+  .counter-row:nth-child(even) .cell{background:#f8fafd}
+  .cell{display:flex;align-items:center;justify-content:center;text-align:center;padding:0.6vh clamp(6px,0.6vw,14px);word-wrap:break-word;border-bottom:1px solid var(--border);line-height:1.25}
+  .counter-row:last-child .cell{border-bottom:none}
+  .cell.counter-num{font-size:clamp(1.1rem,1.3vw + 0.6rem,2.3rem);font-weight:800;color:var(--prc-navy)}
+  .cell.ticket-num{font-size:clamp(1.3rem,1.6vw + 0.6rem,2.9rem);font-weight:800;letter-spacing:0.5px}
+  .cell.service-cell{font-size:clamp(0.95rem,1vw + 0.5rem,1.55rem);font-weight:600;flex-direction:column;gap:4px}
+  .cell.status-cell{font-size:clamp(1rem,1.1vw + 0.5rem,1.7rem);font-weight:800}
+  .idle{color:#9aa7bb;font-weight:600}
+  .serving{color:#1e7e34}
+  .type-badge{display:inline-block;font-size:clamp(0.62rem,0.4vw + 0.4rem,0.95rem);font-weight:700;padding:3px 12px;border-radius:999px;background:var(--prc-blue-light);color:var(--prc-navy)}
   .type-badge.priority{background:var(--priority-bg);color:var(--priority-red)}
   .type-badge.transferred{background:#efe6fb;color:#5a349a}
-  .priority-row td{background:var(--priority-bg) !important}
+  .priority-row .cell{background:var(--priority-bg) !important}
   .priority-row .serving{color:var(--priority-red)}
-  tr.just-updated{animation:rowFlash .9s ease}
+  .counter-row.just-updated .cell{animation:rowFlash .9s ease}
   @keyframes rowFlash{0%{background:rgba(13,91,196,0.14)}100%{background:transparent}}
-  .priority-row.just-updated{animation:rowFlashPriority .9s ease}
+  .priority-row.just-updated .cell{animation:rowFlashPriority .9s ease}
   @keyframes rowFlashPriority{0%{background:rgba(179,38,30,0.20)}100%{background:var(--priority-bg)}}
-  tr.my-ticket td{background:#fff6dd !important;box-shadow:inset 0 0 0 2px #e8b923}
-  tr.my-ticket.just-updated{animation:rowFlashMine 1.4s ease}
+  .my-ticket .cell{background:#fff6dd !important;box-shadow:inset 0 0 0 2px #e8b923}
+  .my-ticket.just-updated .cell{animation:rowFlashMine 1.4s ease}
   @keyframes rowFlashMine{0%{background:#ffe487 !important}100%{background:#fff6dd !important}}
 
   .side-panel{flex:3;min-width:0;display:flex;flex-direction:column;gap:1.4vh}
@@ -76,7 +88,7 @@
   @media (max-width:480px){
     .topbar{padding:12px 14px}
     .topbar .brand{gap:10px}
-    th,td{padding:12px 6px}
+    .cell{padding:10px 6px}
   }
 </style>
 </head>
@@ -98,10 +110,15 @@
     <div class="table-container">
       <button id="enableSound" onclick="window.__enableVoice()">🔊 Click to Enable Sound</button>
       <div class="table-scroll">
-        <table>
-          <thead><tr><th>Counter</th><th>Ticket</th><th>Service</th><th>Status</th></tr></thead>
-          <tbody id="display"></tbody>
-        </table>
+        <div class="counter-table" role="table" aria-label="Counter status">
+          <div class="counter-head" role="row">
+            <div class="cell" role="columnheader">Counter</div>
+            <div class="cell" role="columnheader">Ticket</div>
+            <div class="cell" role="columnheader">Service</div>
+            <div class="cell" role="columnheader">Status</div>
+          </div>
+          <div class="counter-body" id="display" role="rowgroup"></div>
+        </div>
       </div>
     </div>
 
@@ -195,14 +212,16 @@
     let lastRowState = {}; // counterId -> "ticket|status|recallCount", drives flash animation
 
     function render(rows) {
-      const tbody = document.getElementById('display');
-      tbody.innerHTML = "";
+      const body = document.getElementById('display');
+      body.innerHTML = "";
       rows.forEach(row => {
         const { counterId: counter, status, ticket, service, transactionType, priority, priorityReason, recallCount } = row;
         const transferred = (ticket || '').startsWith('T-');
-        const tr = document.createElement('tr');
-        if (priority && (status || '').toLowerCase() === 'now serving') tr.classList.add('priority-row');
-        if (myTicket && ticket === myTicket) tr.classList.add('my-ticket');
+        const rowEl = document.createElement('div');
+        rowEl.className = 'counter-row';
+        rowEl.setAttribute('role', 'row');
+        if (priority && (status || '').toLowerCase() === 'now serving') rowEl.classList.add('priority-row');
+        if (myTicket && ticket === myTicket) rowEl.classList.add('my-ticket');
 
         let serviceCell = service || '-';
         if (priority) {
@@ -214,22 +233,22 @@
           serviceCell = `${service || ''}<br><span class="type-badge transferred">🔄 Transferred</span>`;
         }
 
-        tr.innerHTML = `
-          <td>${counter}</td>
-          <td>${ticket || '-'}</td>
-          <td>${serviceCell}</td>
-          <td class="${(status || '').toLowerCase() === 'now serving' ? 'serving' : 'idle'}">${status || 'Idle'}</td>`;
+        rowEl.innerHTML = `
+          <div class="cell counter-num" role="cell">${counter}</div>
+          <div class="cell ticket-num" role="cell">${ticket || '-'}</div>
+          <div class="cell service-cell" role="cell">${serviceCell}</div>
+          <div class="cell status-cell ${(status || '').toLowerCase() === 'now serving' ? 'serving' : 'idle'}" role="cell">${status || 'Idle'}</div>`;
 
         const stateKey = `${ticket || ''}|${status || ''}|${recallCount || 0}`;
         if (lastRowState[counter] !== undefined && lastRowState[counter] !== stateKey) {
-          tr.classList.add('just-updated');
+          rowEl.classList.add('just-updated');
         }
         lastRowState[counter] = stateKey;
 
-        tbody.appendChild(tr);
+        body.appendChild(rowEl);
 
         if (myTicket && ticket === myTicket && (status || '').toLowerCase() === 'now serving') {
-          tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           const banner = document.getElementById('yourTicketBanner');
           if (banner) banner.textContent = `🎫 It's your turn! ${myTicket} is now being served at ${counter}`;
         }
