@@ -228,15 +228,12 @@ export async function getCompletedTicketsInRange(startDateStr, endDateStr) {
   }));
 }
 
+// Aggregated server-side (get_daily_stats) so only a few numbers cross the wire.
 export async function getDailySummary(dateStr) {
   const d = dateStr || getManilaDateString();
-  const rows = await getCompletedTicketsInRange(d, d);
-  const perCounter = {}, perService = {};
-  rows.forEach(r => {
-    perCounter[r.counter] = (perCounter[r.counter] || 0) + 1;
-    perService[r.service] = (perService[r.service] || 0) + 1;
-  });
-  return { date: d, perCounter, perService };
+  const { data, error } = await supabase.rpc('get_daily_stats', { p_date: d });
+  if (error) throw new Error(error.message);
+  return { date: d, total: data.total, perCounter: data.per_counter, avgWaitMin: data.avg_wait_min, avgProcMin: data.avg_proc_min };
 }
 
 // Live version — redraws the instant a ticket is marked Done, no polling.

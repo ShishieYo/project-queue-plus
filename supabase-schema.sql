@@ -411,6 +411,23 @@ as $function$
   order by done_at asc;
 $function$;
 
+-- Aggregated stats for one Manila day. The staff panel's live chart and
+-- analytics tiles only need these numbers, so return them instead of every
+-- completed row (that full-row refetch was most of the project's egress).
+create or replace function public.get_daily_stats(p_date date)
+ returns json
+ language sql
+ stable
+as $function$
+  with r as (select * from get_completed_in_range(p_date, p_date))
+  select json_build_object(
+    'total', (select count(*) from r),
+    'per_counter', coalesce((select json_object_agg(counter, n) from (select counter, count(*) as n from r group by counter) c), '{}'::json),
+    'avg_wait_min', (select avg(extract(epoch from called_at - created_at) / 60) from r where called_at is not null and created_at is not null),
+    'avg_proc_min', (select avg(extract(epoch from done_at - called_at) / 60) from r where done_at is not null and called_at is not null)
+  );
+$function$;
+
 -- ============================================================
 -- Triggers
 -- ============================================================

@@ -371,9 +371,9 @@
 import {
   SERVICES, addCounter, deleteCounter, resetQueueSystem, callNext, recallPrevious, markDone, transferClient,
   listenCounters, listenCounter, listenWaitingSummary, listenWaitingQueue, listenDailySummary, cleanupStaleCounters,
-  getCompletedTicketsInRange, getManilaDateString, getManilaYesterdayString,
+  getCompletedTicketsInRange, getDailySummary, getManilaDateString, getManilaYesterdayString,
   signIn, signOut, getCurrentUser, getMyProfile, resolveStaffLoginEmail
-} from "./queue-core.js?v2";
+} from "./queue-core.js?v3";
 
 const CODE_TO_NAME = Object.fromEntries(SERVICES.map(s => [s.code, s.name]));
 const GROUP_MAJOR = ["C","A","EA","R","IR","D"];
@@ -626,13 +626,12 @@ function startDailyChartListener(){
     updateTotalTodayDisplay(entries.reduce((sum, e) => sum + (e[1] || 0), 0));
   });
 }
+// Yesterday's data never changes, so fetch it once instead of listening.
 function loadPreviousDayChart(){
-  const dateStr = getManilaYesterdayString();
-  if (unsubPrevChart) unsubPrevChart();
-  unsubPrevChart = listenDailySummary(dateStr, j => {
+  getDailySummary(getManilaYesterdayString()).then(j => {
     const entries = Object.entries(j.perCounter || {});
     drawChart('previousDayChartInner', entries.map(e=>e[0]), entries.map(e=>e[1]), '#0a2f6b', 'top');
-  });
+  }).catch(e => console.warn('loadPreviousDayChart failed', e));
 }
 
 function openActionConfirm(actionName){
@@ -1044,23 +1043,10 @@ function formatMinutes(min) {
 async function refreshTodayStats() {
   try {
     const todayStr = getManilaDateString();
-    const rows = await getCompletedTicketsInRange(todayStr, todayStr);
-    let totalWaitMs = 0, waitCount = 0, totalProcMs = 0, procCount = 0;
-    const perCounter = {};
-    rows.forEach(r => {
-      if (r.createdAt && r.calledAt) { totalWaitMs += (r.calledAt - r.createdAt); waitCount++; }
-      if (r.calledAt && r.doneAt) { totalProcMs += (r.doneAt - r.calledAt); procCount++; }
-      const c = r.counter || 'Unassigned';
-      perCounter[c] = (perCounter[c] || 0) + 1;
-    });
+    const s = await getDailySummary(todayStr);
     let busiestCounter = 'N/A', busiestCount = 0;
-    Object.entries(perCounter).forEach(([c, n]) => { if (n > busiestCount) { busiestCount = n; busiestCounter = c; } });
-    todayStats = {
-      total: rows.length,
-      avgWaitMin: waitCount ? (totalWaitMs / waitCount / 60000) : null,
-      avgProcMin: procCount ? (totalProcMs / procCount / 60000) : null,
-      busiestCounter, busiestCount
-    };
+    Object.entries(s.perCounter).forEach(([c, n]) => { if (n > busiestCount) { busiestCount = n; busiestCounter = c; } });
+    todayStats = { total: s.total, avgWaitMin: s.avgWaitMin, avgProcMin: s.avgProcMin, busiestCounter, busiestCount };
   } catch (e) { console.warn('refreshTodayStats failed', e); }
   renderAnalytics();
 }
