@@ -147,72 +147,140 @@ export async function cleanupStaleCounters() {
   } catch (e) { /* best-effort */ }
 }
 
-// ================= Live listeners (Supabase Realtime: subscribe to raw row
-// changes, refetch the derived view on every change) =================
+// ================= Live listeners (Supabase Realtime) =================
+// These used to refetch the full derived view from the REST API on every
+// single row change — and every open tab (each staff counter, the display
+// board) did that independently. With several tabs open all day and a busy
+// queue, that fanned out into tens of thousands of small requests per day,
+// which is what was filling the Supabase project's log-ingestion quota.
+// Instead, each listener now keeps its own local copy of just the rows it
+// cares about and patches it from the realtime payload (which always
+// carries the complete new row), so steady-state updates cost zero extra
+// REST calls.
+
+// get_active_cycle() rarely changes (once a day, at a reset) but was being
+// called on every single queue-table event. Cache the active_cycle number
+// in memory and only refresh it by listening for the one-row system_state
+// update a reset actually makes — the date portion is recomputed locally
+// each time, so a plain midnight rollover (no reset) still stays correct.
+let cachedActiveCycleNum = null;
+let cycleChannel = null;
+const cycleChangeListeners = new Set();
+async function ensureCycleCache() {
+  if (cachedActiveCycleNum === null) {
+    const { data, error } = await supabase.from('system_state').select('active_cycle').eq('id', 1).single();
+    if (error) throw new Error(error.message);
+    cachedActiveCycleNum = data.active_cycle;
+  }
+  if (!cycleChannel) {
+    cycleChannel = supabase.channel('system-state-watch')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_state' }, payload => {
+        if (payload.new && payload.new.active_cycle !== cachedActiveCycleNum) {
+          cachedActiveCycleNum = payload.new.active_cycle;
+          cycleChangeListeners.forEach(fn => { try { fn(); } catch (e) { /* listener's own problem */ } });
+        }
+      })
+      .subscribe(status => { if (status === 'CHANNEL_ERROR') reportError(new Error('Realtime channel error (system_state)')); });
+  }
+}
+function currentCycleString() { return getManilaDateString() + '_' + cachedActiveCycleNum; }
+function onCycleChange(fn) { cycleChangeListeners.add(fn); return () => cycleChangeListeners.delete(fn); }
+
 export function listenCounters(cb) {
-  const fetchAndEmit = async () => {
+  let rows = new Map(); // id -> raw row
+  const emit = () => cb(Array.from(rows.values()).sort((a, b) => a.id.localeCompare(b.id)).map(mapCounterRow));
+  const fetchInitial = async () => {
     const { data, error } = await supabase.from('counters').select('*').order('id');
     if (error) { reportError(error); return; }
-    cb((data || []).map(mapCounterRow));
+    rows = new Map((data || []).map(r => [r.id, r]));
+    emit();
   };
-  fetchAndEmit();
+  fetchInitial();
   const channel = supabase.channel('counters-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'counters' }, fetchAndEmit)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'counters' }, payload => {
+      if (payload.eventType === 'DELETE') rows.delete(payload.old.id);
+      else rows.set(payload.new.id, payload.new);
+      emit();
+    })
     .subscribe(status => { if (status === 'CHANNEL_ERROR') reportError(new Error('Realtime channel error (counters)')); });
   return () => supabase.removeChannel(channel);
 }
 
 export function listenCounter(counterId, cb) {
-  const fetchAndEmit = async () => {
+  const fetchInitial = async () => {
     const { data, error } = await supabase.from('counters').select('*').eq('id', counterId).maybeSingle();
     if (error) { reportError(error); return; }
     cb(data ? mapCounterRow(data) : null);
   };
-  fetchAndEmit();
+  fetchInitial();
   const channel = supabase.channel('counter-' + counterId)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'counters', filter: `id=eq.${counterId}` }, fetchAndEmit)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'counters', filter: `id=eq.${counterId}` }, payload => {
+      cb(payload.eventType === 'DELETE' ? null : mapCounterRow(payload.new));
+    })
     .subscribe(status => { if (status === 'CHANNEL_ERROR') reportError(new Error('Realtime channel error (counter)')); });
   return () => supabase.removeChannel(channel);
 }
 
 export async function listenWaitingSummary(cb) {
-  const fetchAndEmit = async () => {
-    try {
-      const cycle = await getActiveCycleClient();
-      const { data, error } = await supabase.from('queue').select('service').eq('status', 'Waiting').eq('cycle', cycle);
-      if (error) { reportError(error); return; }
-      const counts = {};
-      SERVICES.forEach(s => counts[s.name] = 0);
-      (data || []).forEach(r => { counts[r.service] = (counts[r.service] || 0) + 1; });
-      cb(counts);
-    } catch (e) { reportError(e); }
+  await ensureCycleCache();
+  let waiting = new Map(); // queue row id -> service
+  const emit = () => {
+    const counts = {};
+    SERVICES.forEach(s => counts[s.name] = 0);
+    for (const svc of waiting.values()) counts[svc] = (counts[svc] || 0) + 1;
+    cb(counts);
   };
-  await fetchAndEmit();
+  const fetchInitial = async () => {
+    const { data, error } = await supabase.from('queue').select('id, service').eq('status', 'Waiting').eq('cycle', currentCycleString());
+    if (error) { reportError(error); return; }
+    waiting = new Map((data || []).map(r => [r.id, r.service]));
+    emit();
+  };
+  await fetchInitial();
+  const unsubCycle = onCycleChange(() => { waiting = new Map(); emit(); }); // a reset means zero waiting in the fresh cycle
   const channel = supabase.channel('waiting-summary')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'queue' }, fetchAndEmit)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'queue' }, payload => {
+      if (payload.eventType === 'DELETE') { waiting.delete(payload.old.id); emit(); return; }
+      const row = payload.new;
+      if (row.status === 'Waiting' && row.cycle === currentCycleString()) waiting.set(row.id, row.service);
+      else waiting.delete(row.id);
+      emit();
+    })
     .subscribe(status => { if (status === 'CHANNEL_ERROR') reportError(new Error('Realtime channel error (waiting summary)')); });
-  return () => supabase.removeChannel(channel);
+  return () => { supabase.removeChannel(channel); unsubCycle(); };
 }
 
 export async function listenWaitingQueue(serviceFilter, cb) {
-  const fetchAndEmit = async () => {
-    try {
-      const cycle = await getActiveCycleClient();
-      let q = supabase.from('queue').select('*').eq('status', 'Waiting').eq('cycle', cycle).order('created_at', { ascending: true });
-      if (serviceFilter) q = q.eq('service', serviceFilter);
-      const { data, error } = await q;
-      if (error) { reportError(error); return; }
-      cb((data || []).map(r => ({
-        ticket: r.ticket, service: r.service, transactionType: r.transaction_type || '',
-        priority: !!r.priority, priorityReason: r.priority_reason || '', timestamp: r.created_at
-      })));
-    } catch (e) { reportError(e); }
+  await ensureCycleCache();
+  let waiting = new Map(); // queue row id -> raw row
+  const emit = () => {
+    const arr = Array.from(waiting.values()).sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0));
+    cb(arr.map(r => ({
+      ticket: r.ticket, service: r.service, transactionType: r.transaction_type || '',
+      priority: !!r.priority, priorityReason: r.priority_reason || '', timestamp: r.created_at
+    })));
   };
-  await fetchAndEmit();
+  const fetchInitial = async () => {
+    let q = supabase.from('queue').select('*').eq('status', 'Waiting').eq('cycle', currentCycleString()).order('created_at', { ascending: true });
+    if (serviceFilter) q = q.eq('service', serviceFilter);
+    const { data, error } = await q;
+    if (error) { reportError(error); return; }
+    waiting = new Map((data || []).map(r => [r.id, r]));
+    emit();
+  };
+  await fetchInitial();
+  const unsubCycle = onCycleChange(() => { waiting = new Map(); emit(); });
   const channel = supabase.channel('waiting-queue-' + (serviceFilter || 'all'))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'queue' }, fetchAndEmit)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'queue' }, payload => {
+      if (payload.eventType === 'DELETE') { waiting.delete(payload.old.id); emit(); return; }
+      const row = payload.new;
+      const matchesFilter = !serviceFilter || row.service === serviceFilter;
+      if (row.status === 'Waiting' && row.cycle === currentCycleString() && matchesFilter) waiting.set(row.id, row);
+      else waiting.delete(row.id);
+      emit();
+    })
     .subscribe(status => { if (status === 'CHANNEL_ERROR') reportError(new Error('Realtime channel error (waiting queue)')); });
-  return () => supabase.removeChannel(channel);
+  return () => { supabase.removeChannel(channel); unsubCycle(); };
 }
 
 // ================= Reports =================
@@ -236,15 +304,25 @@ export async function getDailySummary(dateStr) {
   return { date: d, total: data.total, perCounter: data.per_counter, avgWaitMin: data.avg_wait_min, avgProcMin: data.avg_proc_min };
 }
 
-// Live version — redraws the instant a ticket is marked Done, no polling.
+// Live version — redraws shortly after a ticket is marked Done.
+// get_daily_stats() aggregates (counts, averages) server-side in SQL, so
+// unlike the listeners above this isn't safely diffable client-side without
+// duplicating that math — instead, only refetch when a ticket actually
+// completes (status/created/call changes don't affect these stats at all),
+// and debounce bursts of completions into a single request.
 export function listenDailySummary(dateStr, cb) {
   const d = dateStr || getManilaDateString();
+  let debounceTimer = null;
   const fetchAndEmit = async () => {
     try { cb(await getDailySummary(d)); } catch (e) { reportError(e); }
   };
   fetchAndEmit();
   const channel = supabase.channel('daily-summary-' + d)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'queue' }, fetchAndEmit)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'queue' }, payload => {
+      if (!payload.new || !payload.new.done_at) return; // only a completion affects today's stats
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(fetchAndEmit, 1500);
+    })
     .subscribe(status => { if (status === 'CHANNEL_ERROR') reportError(new Error('Realtime channel error (daily summary)')); });
-  return () => supabase.removeChannel(channel);
+  return () => { supabase.removeChannel(channel); clearTimeout(debounceTimer); };
 }
